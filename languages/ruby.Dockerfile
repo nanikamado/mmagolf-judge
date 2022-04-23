@@ -1,3 +1,3 @@
-FROM mmagolf-base
+FROM golf-base
 
 CMD ["ruby", "/source-code/source-code"]
