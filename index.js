@@ -21,12 +21,24 @@ server.on('connection', ws => {
     });
 });
 
+const available_langs = new Set(["ruby", "bash", "dc"]);
+
 const handle_submission = async(ws, message) => {
     if (!fss.existsSync(`problems/${message.problem_number}`)) {
         ws.send(
             JSON.stringify({
                 type: "not_such_problem",
                 problem_number: message.problem_number
+            })
+        );
+        ws.close();
+        return;
+    }
+    if (!available_langs.has(message.lang)) {
+        ws.send(
+            JSON.stringify({
+                type: "not_such_lang",
+                lang: message.lang
             })
         );
         ws.close();
