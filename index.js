@@ -21,6 +21,10 @@ server.on('connection', ws => {
     });
 });
 
+if (!fss.existsSync("source-code")) {
+    fss.mkdirSync("source-code");
+}
+
 const available_langs = new Set(["ruby", "bash", "dc"]);
 
 const handle_submission = async(ws, message) => {
