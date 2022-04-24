@@ -74,8 +74,16 @@ const handle_submission = async(ws, message) => {
 
 const handle_code_test = async(ws, message) => {
     fss.writeFileSync("source-code/source-code", message.code);
-    let [output, time] = await docker_run(message.lang, message.input ? Buffer.from(message.input, 'base64') : null);
-    ws.send(`{"result":"${Buffer.from(output).toString('base64')}","time":${time}}`);
+    let { type, stdout, stderr, time } = await docker_run(message.lang, message.input ? Buffer.from(message.input, 'base64') : null);
+    ws.send(
+        JSON.stringify({
+            type: "codetest_result",
+            stdout: Buffer.from(stdout).toString('base64'),
+            stderr: Buffer.from(stderr).toString('base64'),
+            time: time,
+            killed: type === "killed",
+        })
+    );
     ws.close();
 };
 
@@ -86,12 +94,12 @@ const docker_run = (lang, input = null) =>
             let killed = false;
             let time_before = new Date();
             let container_id = container_id_out.slice(0, -1);
-            let child = exec(`docker start -i ${container_id}`, (_error, stdout, _stderr) => {
+            let child = exec(`docker start -i ${container_id}`, (_error, stdout, stderr) => {
                 if (killed) {
                     resolve({ type: "killed", time: new Date() - time_before });
                 } else {
                     clearTimeout(timeout);
-                    resolve({ type: "ended", stdout: stdout, time: new Date() - time_before });
+                    resolve({ type: "ended", stdout: stdout, stderr: stderr, time: new Date() - time_before });
                 }
                 exec(`docker stop ${container_id} && docker rm ${container_id}`);
             });
