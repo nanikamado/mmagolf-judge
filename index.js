@@ -96,7 +96,7 @@ const docker_run = (lang, input = null) =>
             let container_id = container_id_out.slice(0, -1);
             let child = exec(`docker start -i ${container_id}`, (_error, stdout, stderr) => {
                 if (killed) {
-                    resolve({ type: "killed", time: new Date() - time_before });
+                    resolve({ type: "killed", stdout, stderr, time: new Date() - time_before });
                 } else {
                     clearTimeout(timeout);
                     resolve({ type: "ended", stdout: stdout, stderr: stderr, time: new Date() - time_before });
