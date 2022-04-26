@@ -1,0 +1,14 @@
+{
+    "bash": {
+        "cmd": "bash /source-code/source-code",
+        "image": "golf-base"
+    },
+    "dc": {
+        "cmd": "dc -f /source-code/source-code",
+        "image": "golf-base"
+    },
+    "ruby": {
+        "cmd": "ruby /source-code/source-code",
+        "image": "golf-base"
+    }
+}

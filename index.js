@@ -89,12 +89,13 @@ const handle_code_test = async(ws, message) => {
 
 const docker_run = (lang, input = null) =>
     new Promise((resolve, reject) => {
-        exec(`docker create -i -m 1000m -v $(pwd)/source-code:/source-code:ro golf-${lang}`, (_error, container_id_out, _stderr) => {
+        let { image, cmd } = languages[lang];
+        exec(`docker run -itd -m 1000m -v $(pwd)/source-code:/source-code:ro ${image}`, (_error, container_id_out, _stderr) => {
             let timeout;
             let killed = false;
             let time_before = new Date();
             let container_id = container_id_out.slice(0, -1);
-            let child = exec(`docker start -i ${container_id}`, (_error, stdout, stderr) => {
+            let child = exec(`docker exec -i ${container_id} ${cmd}`, (_error, stdout, stderr) => {
                 if (killed) {
                     resolve({ type: "killed", stdout, stderr, time: new Date() - time_before });
                 } else {
@@ -110,8 +111,11 @@ const docker_run = (lang, input = null) =>
             let seconds = 15;
             timeout = setTimeout(() => {
                 console.log('Timeout');
-                child.kill('SIGKILL');
+                exec(`docker kill ${container_id}`);
+                // child.kill('SIGKILL');
                 killed = true;
             }, seconds * 1000);
         });
     });
+
+const languages = JSON.parse(fss.readFileSync("languages/languages.json"));
