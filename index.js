@@ -25,8 +25,6 @@ if (!fss.existsSync("source-code")) {
     fss.mkdirSync("source-code");
 }
 
-const available_langs = new Set(["ruby", "bash", "dc"]);
-
 const handle_submission = async(ws, message) => {
     if (!fss.existsSync(`problems/${message.problem_number}`)) {
         ws.send(
@@ -38,7 +36,7 @@ const handle_submission = async(ws, message) => {
         ws.close();
         return;
     }
-    if (!available_langs.has(message.lang)) {
+    if (languages[message.lang] === undefined) {
         ws.send(
             JSON.stringify({
                 type: "not_such_lang",

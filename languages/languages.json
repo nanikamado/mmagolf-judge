@@ -10,5 +10,9 @@
     "ruby": {
         "cmd": "ruby /source-code/source-code",
         "image": "golf-base"
+    },
+    "nibbles": {
+        "cmd": "bash -c 'cp /source-code/source-code code.nbl && nibbles -hs code.nbl 2>/dev/null && ghc out.hs >/dev/null && ./out'",
+        "image": "golf-base"
     }
 }
