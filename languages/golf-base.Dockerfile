@@ -23,5 +23,6 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh \
  && ghc -O -package ghc *.hs \
  && ./nibbles -v \
  && cp nibbles /usr/bin/ \
+ && rm -rf * \
  && cd .. \
  && cabal install --lib dlist split murmur-hash memoize
