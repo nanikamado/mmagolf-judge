@@ -102,13 +102,16 @@ const compile = async(lang, code) => {
     child_promise.child.stdin.end();
     let time_limit = 60 * 1000;
     let output = await Promise.race([child_promise, timeout(time_limit)]);
+    let result;
     if (output === null) {
         await execFile("docker", ["kill", container_id]);
-        return null;
+        result = null;
     } else {
         let commit_id = (await execFile("docker", ["commit", container_id])).stdout.slice(0, -1);
-        return commit_id;
+        result = commit_id;
     }
+    execFile("docker", ["rm", container_id]);
+    return result;
 };
 
 const run = async(lang, image, input, time_limit) => {
