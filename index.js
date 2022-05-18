@@ -133,7 +133,7 @@ const run = async(lang, image, input, time_limit) => {
             output = await child_promise;
             output = JSON.parse(output.stdout);
         } catch ({ stdout, stderr }) {
-            output = { stdout, stderr, time: time_limit };
+            output = { stdout: '', stderr: '', time: time_limit };
         }
         killed = true;
     } else {
@@ -141,8 +141,8 @@ const run = async(lang, image, input, time_limit) => {
     }
     let { stdout, stderr, time } = output;
     return {
-        stdout,
-        stderr,
+        stdout: Buffer.from(stdout, 'base64').toString(),
+        stderr: Buffer.from(stderr, 'base64').toString(),
         time,
         killed,
         container_rm: execFile("docker", ["stop", container_id])
