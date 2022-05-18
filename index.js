@@ -55,10 +55,12 @@ const handle_submission = async(ws, message) => {
     if (image === null) {
         throw 'TEL in compile is not expected'
     }
+    let container_rms = [];
     let promises = files.map(file => (async() => {
         let output = run(lang, image, await fs.readFile(`problems/${message.problem_number}/inputs/${file}`), time_limit);
         let correct_output = fs.readFile(`problems/${message.problem_number}/outputs/${file}`);
-        let { stdout, time, killed } = await output;
+        let { stdout, time, killed, container_rm } = await output;
+        container_rms.push(container_rm);
         correct_output = (await correct_output).toString();
         let result = {
             type: "submission_result",
@@ -71,13 +73,14 @@ const handle_submission = async(ws, message) => {
     })());
     await Promise.all(promises);
     ws.close();
+    await Promise.all(container_rms);
     await execFile("docker", ["rmi", image]);
 };
 
 const handle_code_test = async(ws, message) => {
     let lang = languages[message.lang]
     const image = await compile(lang, message.code);
-    const { stdout, stderr, time, killed } = await run(lang, image, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
+    const { stdout, stderr, time, killed, container_rm } = await run(lang, image, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
     ws.send(
         JSON.stringify({
             type: "codetest_result",
@@ -88,6 +91,7 @@ const handle_code_test = async(ws, message) => {
         })
     );
     ws.close();
+    await container_rm;
     await execFile("docker", ["rmi", image]);
 };
 
@@ -135,14 +139,14 @@ const run = async(lang, image, input, time_limit) => {
     } else {
         output = JSON.parse(output.stdout);
     }
-    await execFile("docker", ["stop", container_id]);
-    await execFile("docker", ["rm", container_id]);
     let { stdout, stderr, time } = output;
     return {
         stdout,
         stderr,
         time,
-        killed
+        killed,
+        container_rm: execFile("docker", ["stop", container_id])
+            .then(() => execFile("docker", ["rm", container_id])),
     };
 };
 
