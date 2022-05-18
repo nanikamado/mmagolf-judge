@@ -1,18 +1,22 @@
 {
     "bash": {
-        "cmd": "bash /source-code/source-code",
+        "compile_cmd": [],
+        "run_cmd": ["bash", "source_code"],
         "image": "golf-base"
     },
     "dc": {
-        "cmd": "dc -f /source-code/source-code",
+        "compile_cmd": [],
+        "run_cmd": ["dc", "-f", "source_code"],
         "image": "golf-base"
     },
     "ruby": {
-        "cmd": "ruby /source-code/source-code",
+        "compile_cmd": [],
+        "run_cmd": ["ruby", "source_code"],
         "image": "golf-base"
     },
     "nibbles": {
-        "cmd": "bash -c 'cp /source-code/source-code code.nbl && nibbles -hs code.nbl 2>/dev/null && ghc out.hs >/dev/null && ./out'",
+        "compile_cmd": [],
+        "run_cmd": ["bash", "-c", "cp source_code code.nbl && nibbles -hs code.nbl 2>/dev/null && ghc out.hs >/dev/null && ./out"],
         "image": "golf-base"
     }
 }

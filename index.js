@@ -1,8 +1,11 @@
 const ws = require('ws');
 const fss = require('fs');
+const util = require('util');
 const fs = fss.promises;
-const exec = require('child_process').exec;
+const execFile = util.promisify(require('child_process').execFile);
 const server = new ws.Server({ port: 5620 });
+
+const time_limit = 15 * 1000;
 
 server.on('connection', ws => {
     ws.on('message', message => {
@@ -36,7 +39,8 @@ const handle_submission = async(ws, message) => {
         ws.close();
         return;
     }
-    if (languages[message.lang] === undefined) {
+    let lang = languages[message.lang];
+    if (lang === undefined) {
         ws.send(
             JSON.stringify({
                 type: "not_such_lang",
@@ -52,68 +56,91 @@ const handle_submission = async(ws, message) => {
         type: "number_of_test_cases",
         n: files.length,
     }));
+    let image = await compile(lang, message.code);
+    if (image === null) {
+        throw 'TEL in compile is not expected'
+    }
     let promises = files.map(file => (async() => {
-        let output = docker_run(message.lang, await fs.readFile(`problems/${message.problem_number}/inputs/${file}`));
+        let output = run(lang, image, await fs.readFile(`problems/${message.problem_number}/inputs/${file}`), time_limit);
         let correct_output = fs.readFile(`problems/${message.problem_number}/outputs/${file}`);
-        let { type, stdout, time } = await output;
+        let { stdout, time, killed } = await output;
         correct_output = (await correct_output).toString();
         let result = {
             type: "submission_result",
             test_case_number: Number(file),
             result: typeof stdout === 'string' ? stdout.toString() === correct_output : false,
             time: time,
-            killed: type === "killed"
+            killed,
         };
         ws.send(JSON.stringify(result));
     })());
     await Promise.all(promises);
     ws.close();
+    await execFile("docker", ["rmi", image]);
 };
 
 const handle_code_test = async(ws, message) => {
     fss.writeFileSync("source-code/source-code", message.code);
-    let { type, stdout, stderr, time } = await docker_run(message.lang, message.input ? Buffer.from(message.input, 'base64') : null);
+    let lang = languages[message.lang]
+    const image = await compile(lang, message.code);
+    const { stdout, stderr, time, killed } = await run(lang, image, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
     ws.send(
         JSON.stringify({
             type: "codetest_result",
             stdout: Buffer.from(stdout).toString('base64'),
             stderr: Buffer.from(stderr).toString('base64'),
             time: time,
-            killed: type === "killed",
+            killed,
         })
     );
     ws.close();
+    await execFile("docker", ["rmi", image]);
 };
 
-const docker_run = (lang, input = null) =>
-    new Promise((resolve, reject) => {
-        let { image, cmd } = languages[lang];
-        exec(`docker run -itd -m 1000m -v $(pwd)/source-code:/source-code:ro ${image}`, (_error, container_id_out, _stderr) => {
-            let timeout;
-            let killed = false;
-            let time_before = new Date();
-            let container_id = container_id_out.slice(0, -1);
-            let child = exec(`docker exec -i ${container_id} ${cmd}`, (_error, stdout, stderr) => {
-                if (killed) {
-                    resolve({ type: "killed", stdout, stderr, time: new Date() - time_before });
-                } else {
-                    clearTimeout(timeout);
-                    resolve({ type: "ended", stdout: stdout, stderr: stderr, time: new Date() - time_before });
-                }
-                exec(`docker stop ${container_id} && docker rm ${container_id}`);
-            });
-            if (input) {
-                child.stdin.write(Buffer.from(input, 'base64'));
-                child.stdin.end();
-            }
-            let seconds = 15;
-            timeout = setTimeout(() => {
-                console.log('Timeout');
-                exec(`docker kill ${container_id}`);
-                // child.kill('SIGKILL');
-                killed = true;
-            }, seconds * 1000);
-        });
-    });
+const timeout = ms => new Promise(resolve => {
+    setTimeout(() => resolve(null), ms);
+});
+
+const compile = async(lang, code) => {
+    let container_id = (await execFile("docker", ["create", "-i", "-m", "1000m", "-v", `${process.env.PWD}/volume:/volume:ro`, lang.image, "/volume/compile-helper"].concat(lang.run_cmd))).stdout.slice(0, -1);
+    let child_promise = execFile("docker", ["start", "-i", container_id]);
+    child_promise.child.stdin.write(Buffer.from(code));
+    child_promise.child.stdin.end();
+    let time_limit = 60 * 1000;
+    let output = await Promise.race([child_promise, timeout(time_limit)]);
+    if (output === null) {
+        await execFile("docker", ["kill", container_id]);
+        return null;
+    } else {
+        let commit_id = (await execFile("docker", ["commit", container_id])).stdout.slice(0, -1);
+        return commit_id;
+    }
+};
+
+const run = async(lang, image, input, time_limit) => {
+    let container_id = (await execFile("docker", ["create", "-i", "-m", "1000m", "-v", `${process.env.PWD}/volume:/volume:ro`, image, "/volume/run-helper"].concat([`${time_limit}`]).concat(lang.run_cmd))).stdout.slice(0, -1);
+    let child_promise = execFile("docker", ["start", "-i", container_id]);
+    if (input !== null) {
+        child_promise.child.stdin.write(Buffer.from(input, 'base64'));
+    }
+    child_promise.child.stdin.end();
+    let output = await Promise.race([child_promise, timeout(time_limit + 1000)]);
+    let killed = false;
+    if (output === null) {
+        await execFile("docker", ["kill", container_id]);
+        output = await child_promise;
+        killed = true;
+    }
+    output = output.stdout;
+    let stop_out = await execFile("docker", ["stop", container_id]);
+    await execFile("docker", ["rm", container_id]);
+    let { stdout, stderr, time } = JSON.parse(output);
+    return {
+        stdout: Buffer.from(stdout, 'base64').toString(),
+        stderr: Buffer.from(stderr, 'base64').toString(),
+        time,
+        killed
+    };
+};
 
 const languages = JSON.parse(fss.readFileSync("languages/languages.json"));
