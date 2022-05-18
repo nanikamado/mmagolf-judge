@@ -129,7 +129,7 @@ const run = async(lang, image, input, time_limit) => {
         killed = true;
     }
     output = output.stdout;
-    let stop_out = await execFile("docker", ["stop", container_id]);
+    await execFile("docker", ["stop", container_id]);
     await execFile("docker", ["rm", container_id]);
     let { stdout, stderr, time } = JSON.parse(output);
     return {
