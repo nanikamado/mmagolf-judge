@@ -24,10 +24,6 @@ server.on('connection', ws => {
     });
 });
 
-if (!fss.existsSync("source-code")) {
-    fss.mkdirSync("source-code");
-}
-
 const handle_submission = async(ws, message) => {
     if (!fss.existsSync(`problems/${message.problem_number}`)) {
         ws.send(
@@ -50,7 +46,6 @@ const handle_submission = async(ws, message) => {
         ws.close();
         return;
     }
-    fss.writeFileSync("source-code/source-code", message.code);
     let files = fss.readdirSync(`problems/${message.problem_number}/inputs`);
     ws.send(JSON.stringify({
         type: "number_of_test_cases",
@@ -80,7 +75,6 @@ const handle_submission = async(ws, message) => {
 };
 
 const handle_code_test = async(ws, message) => {
-    fss.writeFileSync("source-code/source-code", message.code);
     let lang = languages[message.lang]
     const image = await compile(lang, message.code);
     const { stdout, stderr, time, killed } = await run(lang, image, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
