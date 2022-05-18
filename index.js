@@ -125,16 +125,22 @@ const run = async(lang, image, input, time_limit) => {
     let killed = false;
     if (output === null) {
         await execFile("docker", ["kill", container_id]);
-        output = await child_promise;
+        try {
+            output = await child_promise;
+            output = JSON.parse(output.stdout);
+        } catch ({ stdout, stderr }) {
+            output = { stdout, stderr, time: time_limit };
+        }
         killed = true;
+    } else {
+        output = JSON.parse(output.stdout);
     }
-    output = output.stdout;
     await execFile("docker", ["stop", container_id]);
     await execFile("docker", ["rm", container_id]);
-    let { stdout, stderr, time } = JSON.parse(output);
+    let { stdout, stderr, time } = output;
     return {
-        stdout: Buffer.from(stdout, 'base64').toString(),
-        stderr: Buffer.from(stderr, 'base64').toString(),
+        stdout,
+        stderr,
         time,
         killed
     };
