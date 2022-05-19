@@ -5,8 +5,6 @@ WORKDIR /home
 RUN apt-get update && apt-get install -y \
     dc ruby nodejs python3-pip pip curl libtinfo-dev libgmp3-dev \
     build-essential wget
-#  && apt-get clean \
-#  && rm -rf /var/lib/apt/lists/*
 
 # Haskell
 ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1
@@ -56,3 +54,11 @@ RUN set -eux; \
     cd rusty-club; \
     cargo build --release; \
     cargo run;
+
+RUN apt-get install -y \
+    clang libboost-dev \
+ && wget https://github.com/atcoder/ac-library/releases/download/v1.4/ac-library.zip \
+ && unzip ac-library.zip -d /opt/ac-library
+
+# RUN apt-get clean \
+#  && rm -rf /var/lib/apt/lists/*

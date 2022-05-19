@@ -33,5 +33,25 @@
         "compile_cmd": [],
         "run_cmd": ["pypy3", "source_code"],
         "image": "golf-base"
+    },
+    "gcc-c": {
+        "compile_cmd": ["bash", "-c", "mv source_code source_code.c; gcc -std=gnu11 -O2 source_code.c -lm"],
+        "run_cmd": ["./a.out"],
+        "image": "golf-base"
+    },
+    "gcc-cpp": {
+        "compile_cmd": ["bash", "-c", "mv source_code source_code.cpp; g++ -std=gnu++17 -Wall -Wextra -O2 -I/opt/ac-library source_code.cpp"],
+        "run_cmd": ["./a.out"],
+        "image": "golf-base"
+    },
+    "clang-c": {
+        "compile_cmd": ["bash", "-c", "mv source_code source_code.c; clang -std=c11 -O2 source_code.c -lm"],
+        "run_cmd": ["./a.out"],
+        "image": "golf-base"
+    },
+    "clang-cpp": {
+        "compile_cmd": ["bash", "-c", "mv source_code source_code.cpp; clang++ -std=c++17 -Wall -O2 -DNDEBUG -I/opt/ac-library source_code.cpp"],
+        "run_cmd": ["./a.out"],
+        "image": "golf-base"
     }
 }
