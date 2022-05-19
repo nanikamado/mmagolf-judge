@@ -51,13 +51,17 @@ const handle_submission = async(ws, message) => {
         type: "number_of_test_cases",
         n: files.length,
     }));
-    let image = await compile(lang, message.code);
-    if (image === null) {
+    let compile_result = await compile(lang, message.code);
+    if (compile_result.type === "timeout") {
         throw 'TEL in compile is not expected'
+    }
+    if (compile_result.type === 'compile_error') {
+        send_compile_error(ws, compile_result);
+        return;
     }
     let container_rms = [];
     let promises = files.map(file => (async() => {
-        let output = run(lang, image, await fs.readFile(`problems/${message.problem_number}/inputs/${file}`), time_limit);
+        let output = run(lang, compile_result.commit_id, await fs.readFile(`problems/${message.problem_number}/inputs/${file}`), time_limit);
         let correct_output = fs.readFile(`problems/${message.problem_number}/outputs/${file}`);
         let { stdout, time, killed, container_rm } = await output;
         container_rms.push(container_rm);
@@ -74,13 +78,29 @@ const handle_submission = async(ws, message) => {
     await Promise.all(promises);
     ws.close();
     await Promise.all(container_rms);
-    await execFile("docker", ["rmi", image]);
+    await execFile("docker", ["rmi", compile_result.commit_id]);
+};
+
+const send_compile_error = (ws, compile_result) => {
+    ws.send(
+        JSON.stringify({
+            type: "compile_error",
+            stdout: Buffer.from(compile_result.stdout).toString('base64'),
+            stderr: Buffer.from(compile_result.stderr).toString('base64'),
+            code: compile_result.code,
+        })
+    );
+    ws.close();
 };
 
 const handle_code_test = async(ws, message) => {
     let lang = languages[message.lang]
-    const image = await compile(lang, message.code);
-    const { stdout, stderr, time, killed, container_rm } = await run(lang, image, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
+    const compile_result = await compile(lang, message.code);
+    if (compile_result.type === 'compile_error') {
+        send_compile_error(ws, compile_result);
+        return;
+    }
+    const { stdout, stderr, time, killed, container_rm } = await run(lang, compile_result.commit_id, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
     ws.send(
         JSON.stringify({
             type: "codetest_result",
@@ -92,7 +112,7 @@ const handle_code_test = async(ws, message) => {
     );
     ws.close();
     await container_rm;
-    await execFile("docker", ["rmi", image]);
+    await execFile("docker", ["rmi", compile_result.commit_id]);
 };
 
 const timeout = ms => new Promise(resolve => {
@@ -105,14 +125,21 @@ const compile = async(lang, code) => {
     child_promise.child.stdin.write(Buffer.from(code));
     child_promise.child.stdin.end();
     let time_limit = 60 * 1000;
-    let output = await Promise.race([child_promise, timeout(time_limit)]);
+    try {
+        output = await Promise.race([child_promise, timeout(time_limit)]);
+    } catch (e) {
+        output = e;
+    }
     let result;
     if (output === null) {
         await execFile("docker", ["kill", container_id]);
-        result = null;
+        result = { type: "timeout" };
+    } else if (output.code !== undefined) {
+        let { code, stdout, stderr } = output;
+        result = { type: "compile_error", code, stdout, stderr };
     } else {
         let commit_id = (await execFile("docker", ["commit", container_id])).stdout.slice(0, -1);
-        result = commit_id;
+        result = { type: "success", commit_id };
     }
     execFile("docker", ["rm", container_id]);
     return result;
