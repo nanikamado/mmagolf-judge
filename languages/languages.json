@@ -53,5 +53,15 @@
         "compile_cmd": ["bash", "-c", "mv source_code source_code.cpp; clang++ -std=c++17 -Wall -O2 -DNDEBUG -I/opt/ac-library source_code.cpp"],
         "run_cmd": ["./a.out"],
         "image": "golf-base"
+    },
+    "perl": {
+        "compile_cmd": ["perl", "-W", "-c", "source_code"],
+        "run_cmd": ["perl", "-X", "source_code"],
+        "image": "golf-base"
+    },
+    "raku": {
+        "compile_cmd": ["raku", "-c", "source_code"],
+        "run_cmd": ["raku", "source_code"],
+        "image": "golf-base"
     }
 }
