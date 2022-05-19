@@ -58,3 +58,5 @@ COPY rusty-club /home/rusty-club
 RUN cd rusty-club \
  && cargo build --release; \
     cargo run;
+
+RUN apt-get install -y python3-pip pypy3

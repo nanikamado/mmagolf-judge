@@ -23,5 +23,15 @@
         "compile_cmd": ["bash", "-c", "mv source_code /home/rusty-club/src/main.rs; cd /home/rusty-club; cargo build --release --offline"],
         "run_cmd": ["/home/rusty-club/target/release/rusty-club"],
         "image": "golf-base"
+    },
+    "python": {
+        "compile_cmd": [],
+        "run_cmd": ["python3", "source_code"],
+        "image": "golf-base"
+    },
+    "pypy": {
+        "compile_cmd": [],
+        "run_cmd": ["pypy3", "source_code"],
+        "image": "golf-base"
     }
 }
