@@ -1,17 +1,17 @@
 FROM ubuntu:22.04
 
-ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1
-ENV PATH=${PATH}:/root/.local/bin
-ENV PATH=${PATH}:/root/.ghcup/bin
-
 WORKDIR /home
 
 RUN apt-get update && apt-get install -y \
-    dc ruby nodejs python-pip curl libtinfo-dev libgmp3-dev \
+    dc ruby nodejs python3-pip pip curl libtinfo-dev libgmp3-dev \
     build-essential wget
 #  && apt-get clean \
 #  && rm -rf /var/lib/apt/lists/*
 
+# Haskell
+ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1
+ENV PATH=${PATH}:/root/.local/bin
+ENV PATH=${PATH}:/root/.ghcup/bin
 RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh \
  && ghcup upgrade \
  && ghcup install cabal 3.4.0.0 \
@@ -28,11 +28,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh \
  && cd .. \
  && cabal install --lib dlist split murmur-hash memoize
 
+# Rust
+COPY rusty-club /home/rusty-club
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH \
     RUST_VERSION=1.60.0
-
 RUN set -eux; \
     dpkgArch="$(dpkg --print-architecture)"; \
     case "${dpkgArch##*-}" in \
@@ -51,12 +52,7 @@ RUN set -eux; \
     chmod -R a+w $RUSTUP_HOME $CARGO_HOME; \
     rustup --version; \
     cargo --version; \
-    rustc --version;
-
-COPY rusty-club /home/rusty-club
-
-RUN cd rusty-club \
- && cargo build --release; \
+    rustc --version; \
+    cd rusty-club; \
+    cargo build --release; \
     cargo run;
-
-RUN apt-get install -y python3-pip pypy3
