@@ -60,7 +60,7 @@ RUN apt-get install -y \
  && wget https://github.com/atcoder/ac-library/releases/download/v1.4/ac-library.zip \
  && unzip ac-library.zip -d /opt/ac-library
 
-RUN apt-get install -y rakudo
+RUN apt-get install -y rakudo bc zsh fish vim
 
 # RUN apt-get clean \
 #  && rm -rf /var/lib/apt/lists/*

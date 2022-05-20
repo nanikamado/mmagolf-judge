@@ -63,5 +63,35 @@
         "compile_cmd": ["raku", "-c", "source_code"],
         "run_cmd": ["raku", "source_code"],
         "image": "golf-base"
+    },
+    "sed": {
+        "compile_cmd": [],
+        "run_cmd": ["sed", "-f", "source_code"],
+        "image": "golf-base"
+    },
+    "awk": {
+        "compile_cmd": [],
+        "run_cmd": ["awk", "-f", "source_code"],
+        "image": "golf-base"
+    },
+    "bc": {
+        "compile_cmd": [],
+        "run_cmd": ["bc", "--mathlib", "source_code"],
+        "image": "golf-base"
+    },
+    "zsh": {
+        "compile_cmd": [],
+        "run_cmd": ["zsh", "source_code"],
+        "image": "golf-base"
+    },
+    "fish": {
+        "compile_cmd": [],
+        "run_cmd": ["fish", "source_code"],
+        "image": "golf-base"
+    },
+    "vim": {
+        "compile_cmd": [],
+        "run_cmd": ["bash", "-c", "cat>text; TERM=dumb vim -N -u NONE -i NONE -s source_code text > /dev/null 2>&1; cat text"],
+        "image": "golf-base"
     }
 }
