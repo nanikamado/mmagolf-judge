@@ -93,5 +93,10 @@
         "compile_cmd": [],
         "run_cmd": ["bash", "-c", "cat>text; TERM=dumb vim -N -u NONE -i NONE -s source_code text > /dev/null 2>&1; cat text"],
         "image": "golf-base"
+    },
+    "jelly": {
+        "compile_cmd": [],
+        "run_cmd": ["jelly", "fu", "source_code"],
+        "image": "golf-base"
     }
 }
