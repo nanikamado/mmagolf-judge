@@ -63,13 +63,13 @@ const handle_submission = async(ws, message) => {
     let promises = files.map(file => (async() => {
         let output = run(lang, compile_result.commit_id, await fs.readFile(`problems/${message.problem_number}/inputs/${file}`), time_limit);
         let correct_output = fs.readFile(`problems/${message.problem_number}/outputs/${file}`);
-        let { stdout, time, killed, container_rm } = await output;
+        let { stdout, time, killed, status, container_rm } = await output;
         container_rms.push(container_rm);
         correct_output = (await correct_output).toString();
         let result = {
             type: "submission_result",
             test_case_number: Number(file),
-            result: typeof stdout === 'string' ? stdout.toString() === correct_output : false,
+            result: status !== 0 ? 're' : typeof stdout === 'string' && stdout.toString() === correct_output ? 'ac' : 'wa',
             time: time,
             killed,
         };
@@ -100,13 +100,14 @@ const handle_code_test = async(ws, message) => {
         send_compile_error(ws, compile_result);
         return;
     }
-    const { stdout, stderr, time, killed, container_rm } = await run(lang, compile_result.commit_id, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
+    const { stdout, stderr, time, killed, status, container_rm } = await run(lang, compile_result.commit_id, message.input ? Buffer.from(message.input, 'base64') : null, time_limit);
     ws.send(
         JSON.stringify({
             type: "codetest_result",
             stdout: Buffer.from(stdout).toString('base64'),
             stderr: Buffer.from(stderr).toString('base64'),
             time: time,
+            status,
             killed,
         })
     );
@@ -160,18 +161,19 @@ const run = async(lang, image, input, time_limit) => {
             output = await child_promise;
             output = JSON.parse(output.stdout);
         } catch ({ stdout, stderr }) {
-            output = { stdout: '', stderr: '', time: time_limit };
+            output = { stdout: '', stderr: '', time: time_limit, status: null };
         }
         killed = true;
     } else {
         output = JSON.parse(output.stdout);
     }
-    let { stdout, stderr, time } = output;
+    let { stdout, stderr, time, status } = output;
     return {
         stdout: Buffer.from(stdout, 'base64').toString(),
         stderr: Buffer.from(stderr, 'base64').toString(),
         time,
         killed,
+        status,
         container_rm: execFile("docker", ["stop", container_id])
             .then(() => execFile("docker", ["rm", container_id])),
     };
