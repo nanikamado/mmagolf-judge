@@ -24,6 +24,24 @@ server.on('connection', ws => {
     });
 });
 
+const test_case_priority = t => [t.match(/sample/) ? 0 : 1, Number(t.match(/\d+/g).slice(-1)[0]), t];
+
+const cmp = (a, b) => {
+    if (!a.length && !b.length) {
+        return 0;
+    } else if (!a.length) {
+        return -1;
+    } else if (!b.length) {
+        return 1;
+    } else if (a[0] === b[0]) {
+        return cmp(a.slice(1), b.slice(1));
+    } else if (a[0] < b[0]) {
+        return -1;
+    } else {
+        return 1;
+    }
+};
+
 const handle_submission = async (ws, message) => {
     if (!fss.existsSync(`problems/${message.problem_name}`)) {
         ws.send(
@@ -46,7 +64,10 @@ const handle_submission = async (ws, message) => {
         ws.close();
         return;
     }
-    let files = fss.readFileSync(`problems/${message.problem_name}/test-cases`).toString().split('\n').filter(t => t !== '');
+    let files = fss.readdirSync(`problems/${message.problem_name}/testcases/in`)
+        .sort((a, b) =>
+            cmp(test_case_priority(a), test_case_priority(b))
+        );
     ws.send(JSON.stringify({
         type: "test_case_names",
         ns: files,
@@ -61,8 +82,13 @@ const handle_submission = async (ws, message) => {
     }
     let container_rms = [];
     let promises = files.map(file => (async () => {
-        let output = run(lang, compile_result.commit_id, await fs.readFile(`problems/${message.problem_name}/inputs/${file}`), time_limit);
-        let correct_output = fs.readFile(`problems/${message.problem_name}/outputs/${file}`);
+        let output = run(
+            lang,
+            compile_result.commit_id,
+            await fs.readFile(`problems/${message.problem_name}/testcases/in/${file}`),
+            time_limit
+        );
+        let correct_output = fs.readFile(`problems/${message.problem_name}/testcases/out/${file}`);
         let { stdout, time, killed, status, container_rm } = await output;
         container_rms.push(container_rm);
         correct_output = (await correct_output).toString();
