@@ -24,12 +24,12 @@ server.on('connection', ws => {
     });
 });
 
-const handle_submission = async(ws, message) => {
-    if (!fss.existsSync(`problems/${message.problem_number}`)) {
+const handle_submission = async (ws, message) => {
+    if (!fss.existsSync(`problems/${message.problem_name}`)) {
         ws.send(
             JSON.stringify({
                 type: "not_such_problem",
-                problem_number: message.problem_number
+                problem_name: message.problem_name
             })
         );
         ws.close();
@@ -46,10 +46,10 @@ const handle_submission = async(ws, message) => {
         ws.close();
         return;
     }
-    let files = fss.readdirSync(`problems/${message.problem_number}/inputs`);
+    let files = fss.readFileSync(`problems/${message.problem_name}/test-cases`).toString().split('\n').filter(t => t !== '');
     ws.send(JSON.stringify({
-        type: "number_of_test_cases",
-        n: files.length,
+        type: "test_case_names",
+        ns: files,
     }));
     let compile_result = await compile(lang, message.code);
     if (compile_result.type === "timeout") {
@@ -60,15 +60,15 @@ const handle_submission = async(ws, message) => {
         return;
     }
     let container_rms = [];
-    let promises = files.map(file => (async() => {
-        let output = run(lang, compile_result.commit_id, await fs.readFile(`problems/${message.problem_number}/inputs/${file}`), time_limit);
-        let correct_output = fs.readFile(`problems/${message.problem_number}/outputs/${file}`);
+    let promises = files.map(file => (async () => {
+        let output = run(lang, compile_result.commit_id, await fs.readFile(`problems/${message.problem_name}/inputs/${file}`), time_limit);
+        let correct_output = fs.readFile(`problems/${message.problem_name}/outputs/${file}`);
         let { stdout, time, killed, status, container_rm } = await output;
         container_rms.push(container_rm);
         correct_output = (await correct_output).toString();
         let result = {
             type: "submission_result",
-            test_case_number: Number(file),
+            test_case_name: file,
             result: status !== 0 ? 're' : typeof stdout === 'string' && stdout.toString() === correct_output ? 'ac' : 'wa',
             time: time,
             killed,
@@ -93,7 +93,7 @@ const send_compile_error = (ws, compile_result) => {
     ws.close();
 };
 
-const handle_code_test = async(ws, message) => {
+const handle_code_test = async (ws, message) => {
     let lang = languages[message.lang]
     const compile_result = await compile(lang, message.code);
     if (compile_result.type === 'compile_error') {
@@ -120,7 +120,7 @@ const timeout = ms => new Promise(resolve => {
     setTimeout(() => resolve(null), ms);
 });
 
-const compile = async(lang, code) => {
+const compile = async (lang, code) => {
     let container_id = (await execFile("docker", ["create", "-i", "-m", "1000m", "--cpus=1", "--network", "none", "-v", `${process.env.PWD}/volume:/volume:ro`, lang.image, "/volume/compile-helper"].concat(lang.compile_cmd))).stdout.slice(0, -1);
     let child_promise = execFile("docker", ["start", "-i", container_id]);
     child_promise.child.stdin.write(Buffer.from(code));
@@ -146,7 +146,7 @@ const compile = async(lang, code) => {
     return result;
 };
 
-const run = async(lang, image, input, time_limit) => {
+const run = async (lang, image, input, time_limit) => {
     let container_id = (await execFile("docker", ["create", "-i", "-m", "1000m", "--cpus=1", "--network", "none", "-v", `${process.env.PWD}/volume:/volume:ro`, image, "/volume/run-helper"].concat([`${time_limit}`]).concat(lang.run_cmd))).stdout.slice(0, -1);
     let child_promise = execFile("docker", ["start", "-i", container_id]);
     if (input !== null) {
