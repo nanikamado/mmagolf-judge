@@ -302,7 +302,7 @@ const run = async (lang, image, input, time_limit) => {
         stdout: Buffer.from(stdout, 'base64').toString(),
         stderr: Buffer.from(stderr, 'base64').toString(),
         time,
-        killed,
+        killed: killed || time > time_limit,
         status,
         container_rm: execFile('docker', ['stop', container_id]).then(() =>
             execFile('docker', ['rm', container_id])
