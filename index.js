@@ -33,7 +33,11 @@ server.on('connection', ws => {
     });
 });
 
-const test_case_priority = t => [t.match(/sample/) ? 0 : 1, Number(t.match(/\d+/g).slice(-1)[0]), t];
+const test_case_priority = t =>
+    [t.match(/sample/) ? 0 : 1]
+        .concat(t.match(/[^\d]+|\d+/g)
+        .map(d => parseInt(d) || d))
+        .concat([t]);
 
 const cmp = (a, b) => {
     if (!a.length && !b.length) {
