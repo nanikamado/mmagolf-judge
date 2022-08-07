@@ -65,5 +65,7 @@ RUN apt-get install -y rakudo bc zsh fish vim git
 RUN git clone https://github.com/DennisMitchell/jellylanguage.git \
  && pip3 install --upgrade jellylanguage/
 
+RUN apt-get install -y pypy3
+
 # RUN apt-get clean \
 #  && rm -rf /var/lib/apt/lists/*
