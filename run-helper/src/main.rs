@@ -2,43 +2,41 @@ use serde_json::json;
 use std::{
     env::args,
     io::{stdin, stdout, Read, Write},
-    os::unix::prelude::ExitStatusExt,
-    process::{Command, Stdio},
     time::{Duration, Instant},
 };
-use wait_timeout::ChildExt;
+use subprocess::{Exec, Redirection};
 
 fn main() {
     let args: Vec<String> = args().skip(1).collect();
     let mut input: Vec<u8> = Vec::new();
     stdin().read_to_end(&mut input).unwrap();
     let time_limit: u64 = args[0].parse().unwrap();
-    let mut child = Command::new(&args[1])
+    let mut popen = Exec::cmd(&args[1])
         .args(&args[2..])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .current_dir("/judge")
-        .spawn()
+        .stdin(Redirection::Pipe)
+        .stdout(Redirection::Pipe)
+        .cwd("/judge")
+        .detached()
+        .popen()
         .unwrap();
-    let child_stdin = child.stdin.as_mut().unwrap();
     let start = Instant::now();
-    let _ = child_stdin.write_all(&input);
-    if child
+    let (cmd_stdout, cmd_stderr) = popen
+        .communicate_start(Some(input))
+        .limit_time(Duration::from_millis(time_limit))
+        .read()
+        .unwrap_or_else(|e| e.capture);
+    let exit_status = popen
         .wait_timeout(Duration::from_millis(time_limit))
-        .unwrap()
-        .is_none()
-    {
-        child.kill().unwrap();
-        child.wait().unwrap();
-    }
+        .unwrap();
     let time = start.elapsed().as_millis();
-    let output = child.wait_with_output().unwrap();
+    let status = exit_status
+        .map(|e| format!("{:?}", e))
+        .unwrap_or_else(|| "timeout".to_string());
     let output = json!({
         "time": time as u64,
-        "status": output.status.into_raw(),
-        "stdout": base64::encode(output.stdout),
-        "stderr": base64::encode(output.stderr),
+        "status": status,
+        "stdout": base64::encode(cmd_stdout.unwrap_or_default()),
+        "stderr": base64::encode(cmd_stderr.unwrap_or_default()),
     });
     stdout().write_all(output.to_string().as_bytes()).unwrap();
 }

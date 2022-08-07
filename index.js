@@ -36,7 +36,7 @@ server.on('connection', ws => {
 const test_case_priority = t =>
     [t.match(/sample/) ? 0 : 1]
         .concat(t.match(/[^\d]+|\d+/g)
-        .map(d => parseInt(d) || d))
+            .map(d => parseInt(d) || d))
         .concat([t]);
 
 const cmp = (a, b) => {
@@ -194,8 +194,12 @@ const compile = async (lang, code) => {
 };
 
 const run = async (lang, image, input, time_limit) => {
-    let container_id = (await execFile("docker", ["create", "-i", "-m", "1000m", "--cpus=1", "--network", "none", "-v", `${process.env.PWD}/volume:/volume:ro`, image, "/volume/run-helper"].concat([`${time_limit}`]).concat(lang.run_cmd))).stdout.slice(0, -1);
-    let child_promise = execFile("docker", ["start", "-i", container_id]);
+    let container_id = (await execFile(
+        "docker",
+        ["create", "-i", "-m", "1000m", "--cpus=1", "--network", "none", "-v", `${process.env.PWD}/volume:/volume:ro`, image, "/volume/run-helper"].concat([`${time_limit}`]).concat(lang.run_cmd)
+    )
+    ).stdout.slice(0, -1);
+    let child_promise = execFile("docker", ["start", "-i", container_id], { maxBuffer: 20 * 1024 * 1024 });
     if (input !== null) {
         child_promise.child.stdin.write(Buffer.from(input, 'base64'));
     }
