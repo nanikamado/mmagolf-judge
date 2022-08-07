@@ -10,7 +10,16 @@ const time_limit = 15 * 1000;
 server.on('connection', ws => {
     ws.on('message', message => {
         message = JSON.parse(message);
-        if (message.type == "submission") {
+        let lang = languages[message.lang];
+        if (lang === undefined) {
+            ws.send(
+                JSON.stringify({
+                    type: "not_such_lang",
+                    lang: message.lang
+                })
+            );
+            ws.close();
+        } else if (message.type == "submission") {
             handle_submission(ws, message);
         } else if (message.type == "codetest") {
             handle_code_test(ws, message);
@@ -43,22 +52,12 @@ const cmp = (a, b) => {
 };
 
 const handle_submission = async (ws, message) => {
+    let lang = languages[message.lang];
     if (!fss.existsSync(`problems/${message.problem_name}`)) {
         ws.send(
             JSON.stringify({
                 type: "not_such_problem",
                 problem_name: message.problem_name
-            })
-        );
-        ws.close();
-        return;
-    }
-    let lang = languages[message.lang];
-    if (lang === undefined) {
-        ws.send(
-            JSON.stringify({
-                type: "not_such_lang",
-                lang: message.lang
             })
         );
         ws.close();
