@@ -6,7 +6,7 @@ const execFile = util.promisify(require('child_process').execFile);
 const server = new ws.Server({
     port: 5620
 });
-const time_limit = 15 * 1000;
+const TIME_LIMIT = 15 * 1000;
 server.on('connection', (ws) => {
     ws.on('message', (message) => {
         message = JSON.parse(message);
@@ -68,7 +68,7 @@ const handle_submission = async (ws, message) => {
         ws.close();
         return;
     }
-
+    let time_limit = JSON.parse(await fs.readFile(`problems/${message.problem_name}/problem.json`)).timeLimit;
     let files = fss
         .readdirSync(`problems/${message.problem_name}/testcases/in`)
         .sort((a, b) => cmp(test_case_priority(a), test_case_priority(b)));
@@ -159,7 +159,7 @@ const handle_code_test = async (ws, message) => {
         lang,
         compile_result.commit_id,
         message.input ? Buffer.from(message.input, 'base64') : null,
-        time_limit
+        TIME_LIMIT
     );
     ws.send(
         JSON.stringify({
@@ -270,11 +270,15 @@ const run = async (lang, image, input, time_limit) => {
     }
 
     child_promise.child.stdin.end();
-    let output = await Promise.race([child_promise, timeout(time_limit + 1000)]);
+    let output = await Promise.race([child_promise, timeout(time_limit + 20 * 1000)]);
     let killed = false;
 
     if (output === null) {
-        await execFile('docker', ['kill', container_id]);
+        try {
+            await execFile('docker', ['kill', container_id]);
+        } catch (e) {
+            console.table({ e });
+        }
 
         try {
             output = await child_promise;
