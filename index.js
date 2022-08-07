@@ -90,11 +90,12 @@ const handle_submission = async (ws, message) => {
         let correct_output = fs.readFile(`problems/${message.problem_name}/testcases/out/${file}`);
         let { stdout, time, killed, status, container_rm } = await output;
         container_rms.push(container_rm);
-        correct_output = (await correct_output).toString();
+        correct_output = (await correct_output).toString().replace("\r\n", "\n");
+        let stdout_output = stdout.toString().replace("\r\n", "\n");
         let result = {
             type: "submission_result",
             test_case_name: file,
-            result: status !== 0 ? 're' : typeof stdout === 'string' && stdout.toString() === correct_output ? 'ac' : 'wa',
+            result: status !== 0 ? 're' : typeof stdout === 'string' && stdout_output === correct_output ? 'ac' : 'wa',
             time: time,
             killed,
         };
