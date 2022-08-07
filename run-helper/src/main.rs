@@ -15,6 +15,7 @@ fn main() {
         .args(&args[2..])
         .stdin(Redirection::Pipe)
         .stdout(Redirection::Pipe)
+        .stderr(Redirection::Pipe)
         .cwd("/judge")
         .detached()
         .popen()
