@@ -99,7 +99,7 @@ const handle_submission = async (ws, message) => {
         let result = {
             type: "submission_result",
             test_case_name: file,
-            result: status !== 0 ? 're' : typeof stdout === 'string' && stdout_output === correct_output ? 'ac' : 'wa',
+            result: status !== 'Exited(0)' ? 're' : typeof stdout === 'string' && stdout_output === correct_output ? 'ac' : 'wa',
             time: time,
             killed,
         };
