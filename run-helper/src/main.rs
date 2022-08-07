@@ -23,7 +23,7 @@ fn main() {
         .unwrap();
     let child_stdin = child.stdin.as_mut().unwrap();
     let start = Instant::now();
-    child_stdin.write_all(&input).unwrap();
+    let _ = child_stdin.write_all(&input);
     if child
         .wait_timeout(Duration::from_millis(time_limit))
         .unwrap()
