@@ -147,7 +147,24 @@ const timeout = ms => new Promise(resolve => {
 });
 
 const compile = async (lang, code) => {
-    let container_id = (await execFile("docker", ["create", "-i", "-m", "1000m", "--cpus=1", "--network", "none", "-v", `${process.env.PWD}/volume:/volume:ro`, lang.image, "/volume/compile-helper"].concat(lang.compile_cmd))).stdout.slice(0, -1);
+    let container_id = (
+        await execFile(
+            "docker",
+            ["create",
+                "-i",
+                "-m",
+                "1000m", "--cpus=1",
+                "--network",
+                "none",
+                "-v",
+                `${process.env.PWD}/volume:/volume:ro`,
+                lang.image,
+                "/volume/compile-helper"
+            ]
+                .concat(lang.compile_cmd)
+        )
+    )
+        .stdout.slice(0, -1);
     let child_promise = execFile("docker", ["start", "-i", container_id]);
     child_promise.child.stdin.write(Buffer.from(code));
     child_promise.child.stdin.end();
