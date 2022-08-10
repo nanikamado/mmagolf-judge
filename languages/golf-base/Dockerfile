@@ -67,5 +67,7 @@ RUN git clone https://github.com/DennisMitchell/jellylanguage.git \
 
 RUN apt-get install -y pypy3
 
+RUN curl -fsSL https://crystal-lang.org/install.sh | bash
+
 # RUN apt-get clean \
 #  && rm -rf /var/lib/apt/lists/*

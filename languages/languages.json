@@ -98,5 +98,10 @@
         "compile_cmd": [],
         "run_cmd": ["jelly", "fu", "source_code"],
         "image": "golf-base"
+    },
+    "crystal": {
+        "compile_cmd": ["bash", "-c", "mv source_code a.cr; crystal build --release a.cr"],
+        "run_cmd":"./a",
+        "image": "golf-base"
     }
 }
