@@ -15,7 +15,7 @@
         "image": "golf-base"
     },
     "nibbles": {
-        "compile_cmd": ["bash", "-c", "mv source_code source_code.nbl && nibbles -hs source_code.nbl 2>/dev/null && ghc out.hs >/dev/null"],
+        "compile_cmd": ["bash", "-c", "mv source_code source_code.nbl && nibbles -hs source_code.nbl && ghc out.hs >/dev/null"],
         "run_cmd": ["./out"],
         "image": "golf-base"
     },
